@@ -13,7 +13,9 @@ const Board = () => {
     const [time,setTime] = useState(0);
     const [timerRunning, setTimerRunning] = useState(false);
     const [starts,setStarts] = useState(false);
+    const [pause,setPause] = useState(true);
 
+    let count = 0;
     useEffect(() => {
         let timer;
         if (timerRunning) {
@@ -49,6 +51,8 @@ const Board = () => {
             return
         }
         // start and pause timer
+        setPause(!pause);
+        setStarts(!starts);
         setTimerRunning(!timerRunning);
     }
 
@@ -139,12 +143,16 @@ const Board = () => {
 
     return <div className="game">
         <Header move={move} Time={time}/>
-        <div className="board">
+        {starts && <div className="board"> 
             <Overlay size={16} />
             {numbers.map ((x,i) => {
-                return <Tile key={i} number={x} moveTile={moveTile}/>
+                return <Tile key={i} number={x} start={starts}moveTile={moveTile}/>
             })}
-        </div>
+        </div>}
+        {!starts && <div className="boardTrans">
+            <h1>Click to start</h1>
+            </div>
+        }
         <Winner numbers={numbers} reset={reset}/>
         <NewGame reset={reset} help={help} start={start} />
     </div>

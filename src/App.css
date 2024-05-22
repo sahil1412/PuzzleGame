@@ -2,6 +2,7 @@
   --size: 100px;
   --tile: #342956;
   --correct: #6e50b4;
+  --sizeStart: 400px;
 }
 @import url('https://fonts.googleapis.com/css2?family=Pacifico&display=swap');
 html,body {
