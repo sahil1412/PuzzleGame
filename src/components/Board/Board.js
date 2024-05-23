@@ -47,7 +47,8 @@ const Board = () => {
         setNumbers(shuffle());
         setMove(0);
         setTime(0);
-        setTimerRunning(false);
+        setTimerRunning(timerRunning);
+
     }
 
     const start = () =>{
@@ -111,31 +112,34 @@ const Board = () => {
         let dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
         
         const minHeap = new PriorityQueue({
-            comparator: (a, b) => a - b});
+            comparator: (a, b) => a.priority - b.priority});
 
-        minHeap.queue({dist:dist,state:initial});
+        minHeap.queue({task:JSON.stringify(initial),priority:dist});
 
         let st = new Set();
         st.add(JSON.stringify(initial));
 
         while (minHeap.length > 0) {
             let top = minHeap.peek();
-            minHeap.dequeue();
-            let state = top.state;
-            let pos = spacePosition(state);
+            console.log(minHeap.dequeue());
+            let states = JSON.parse(top.task);
+            // console.log(top.dist);
+            console.log(states);
+            let pos = spacePosition(states);
             let x = pos.r;
             let y = pos.c;
             for (let i=0;i<dirs.length;i++) {
                 let nx = x + dirs[i][0];
                 let ny = y + dirs[i][1];
                 if (nx >= 0 && ny >= 0 && nx < N && ny < N) {
-                    const temp = state;
+                    const temp = states;
                     [temp[x][y] ,temp[nx][ny]] = [temp[nx][ny],temp[x][y]];
                     let distance = cost(temp, target);
                     if (!st.has(JSON.stringify(temp))) {
-                        mp.set(JSON.stringify(temp),JSON.stringify(state));
-                        console.log(distance);
-                        minHeap.queue({dist:distance,state:temp});
+                        mp.set(JSON.stringify(temp),JSON.stringify(states));
+                        // console.log(distance);
+                        minHeap.queue({task:JSON.stringify(temp),priority:distance});
+                        // minHeap.queue({dist:distance,state:temp});
                         st.add(JSON.stringify(temp));
                     }
                     if (temp === target) {
@@ -144,8 +148,7 @@ const Board = () => {
                 }
             }
         }
-        // console.log(mp);
-        leaf_To_Root_path(mp,target);
+        // leaf_To_Root_path(mp,target);
     }
     const help = ()=>{
         let initial = [];
