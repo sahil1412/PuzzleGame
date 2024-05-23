@@ -5,7 +5,7 @@ import Overlay from "../Overlay/Overlay";
 import NewGame from "../new-game/NewGame";
 import Winner from "../winner/Winner";
 import Header from "../header/Header";
-import Starts from "../start-up/Starts";
+const PriorityQueue = require('js-priority-queue');
 
 const N = 4;
 const Board = () => {
@@ -13,9 +13,9 @@ const Board = () => {
     const [time,setTime] = useState(0);
     const [timerRunning, setTimerRunning] = useState(false);
     const [starts,setStarts] = useState(false);
-    const [pause,setPause] = useState(true);
+    const [numbers,setNumbers] = useState([])
+    const [animating,setAnimating] = useState(false)
 
-    let count = 0;
     useEffect(() => {
         let timer;
         if (timerRunning) {
@@ -26,6 +26,15 @@ const Board = () => {
         return () => clearInterval(timer);
       }, [timerRunning, setTime]);
     
+    // target array we need
+    let rows = 4;
+    let cols = 4;
+    let target = Array.from({ length: rows }, (_, i) => 
+        Array.from({ length: cols }, (_, j) => i * cols + j + 1) // Populating with sequential numbers
+    );
+    target[3][3] = 0;
+
+    // generate random array 
     const shuffle = () => 
         new Array(16)
         .fill()
@@ -33,9 +42,7 @@ const Board = () => {
         .sort(() => Math.random() -.5)
         .map((x,i) => ({value : x , index : i}))
 
-    const [numbers,setNumbers] = useState([])
-    const [animating,setAnimating] = useState(false)
-
+    // reset the puzzle
     const reset = () => {
         setNumbers(shuffle());
         setMove(0);
@@ -51,14 +58,118 @@ const Board = () => {
             return
         }
         // start and pause timer
-        setPause(!pause);
         setStarts(!starts);
         setTimerRunning(!timerRunning);
     }
 
+    const cost = (initial,target) =>{
+        let count = 0;
+        for(let i=0;i<N;i++){
+            for(let j=0;j<N;j++){
+                if(initial[i][j] != target[i][j] && initial[i][j] != 16){
+                    count++;
+                }
+            }
+        }
+        return count;
+    }
+
+    const spacePosition = (initial) =>{
+        let r = -1,c = -1;
+        for(let i=0;i<N;i++){
+            for(let j=0;j<N;j++){
+                if(initial[i][j] == 0){
+                    r = i;
+                    c = j;
+                    break;
+                }
+            }
+        }
+        return {r,c};
+    }
+
+    const leaf_To_Root_path = (mp,node) =>{
+        let path = [];
+        let current = JSON.stringify(node);
+
+        while(mp.has(current)){
+            path.push(JSON.parse(current));
+            current = JSON.stringify(mp.get(current));
+        }
+
+        path.push(JSON.parse(current));
+        path.reverse();
+
+        console.log(path[1]);
+    }
+    
+    const nextState = (initial, target) =>{
+        
+        let dist = cost(initial, target);
+
+        let mp = new Map();
+        let dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+        
+        const minHeap = new PriorityQueue({
+            comparator: (a, b) => a - b});
+
+        minHeap.queue({dist:dist,state:initial});
+
+        let st = new Set();
+        st.add(JSON.stringify(initial));
+
+        while (minHeap.length > 0) {
+            let top = minHeap.peek();
+            minHeap.dequeue();
+            let state = top.state;
+            let pos = spacePosition(state);
+            let x = pos.r;
+            let y = pos.c;
+            for (let i=0;i<dirs.length;i++) {
+                let nx = x + dirs[i][0];
+                let ny = y + dirs[i][1];
+                if (nx >= 0 && ny >= 0 && nx < N && ny < N) {
+                    const temp = state;
+                    [temp[x][y] ,temp[nx][ny]] = [temp[nx][ny],temp[x][y]];
+                    let distance = cost(temp, target);
+                    if (!st.has(JSON.stringify(temp))) {
+                        mp.set(JSON.stringify(temp),JSON.stringify(state));
+                        console.log(distance);
+                        minHeap.queue({dist:distance,state:temp});
+                        st.add(JSON.stringify(temp));
+                    }
+                    if (temp === target) {
+                        break;
+                    }
+                }
+            }
+        }
+        // console.log(mp);
+        leaf_To_Root_path(mp,target);
+    }
     const help = ()=>{
-        // next move
-        console.log(numbers);
+        let initial = [];
+        console.log();
+        let k = 0;
+        for(let i=0;i<N;i++){
+            const temp = [];
+            for(let j=0;j<N;j++){
+                temp.push(numbers[k].value);
+                k++;
+            }
+            initial.push(temp);
+        }
+
+        for(let i=0;i<N;i++){
+            for(let j=0;j<N;j++){
+                if(initial[i][j] == 16){
+                    initial[i][j] = 0;
+                }
+            }
+        }
+        
+        nextState(initial,target);
+        //console.log(target);
         
     }
 
@@ -150,7 +261,7 @@ const Board = () => {
             })}
         </div>}
         {!starts && <div className="boardTrans">
-            <h1>Click to start</h1>
+            <h1>Click to start </h1>
             </div>
         }
         <Winner numbers={numbers} reset={reset}/>
