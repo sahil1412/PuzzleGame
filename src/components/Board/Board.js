@@ -42,9 +42,67 @@ const Board = () => {
         .sort(() => Math.random() -.5)
         .map((x,i) => ({value : x , index : i}))
 
-    // reset the puzzle
-    const reset = () => {
+    const getInvCount = (puzzle) =>{
+        let inversion_count = 0;
+        for(let i=0;i<N*N-1;i++){
+            for(let j=i+1;j<N*N;j++){
+                if(puzzle[j] && puzzle[i] && puzzle[i] > puzzle[j]){
+                    inversion_count++;
+                }
+            }
+        }
+        return inversion_count;
+    }
+
+    const findXPosition = (puzzle) =>{
+        for(let i=N-1;i>=0;i--){
+            for(let j=N-1;j>=0;j--){
+                if(puzzle[i][j] === 0)
+                    return N-i;
+            }
+        }
+    }
+
+    const isSolvable = (numbers) =>{
+        let initial = [];
+        console.log();
+        let k = 0;
+        for(let i=0;i<N;i++){
+            const temp = [];
+            for(let j=0;j<N;j++){
+                if(numbers[k].value !== 16){
+                    temp.push(numbers[k].value);
+                }
+                else{
+                    temp.push(0);
+                }
+                k++;
+            }
+            initial.push(temp);
+        }
+        // check whether the puzzle is solvable or not
+        let inversion_count = getInvCount(initial);
+
+        if(N & 1){
+            return !(inversion_count & 1);
+        }
+        else{
+            let pos = findXPosition(initial);
+            if(pos & 1)
+                return !(inversion_count & 1);
+            else 
+                return inversion_count & 1;
+        }
+
+    }
+     // reset the puzzle
+     const reset = () => {
         setNumbers(shuffle());
+        // if(!isSolvable(numbers)){
+        //     alert("This puzzle is unsolvable. New puzzle Generated.")
+        //     // console.log("unSolvable");
+        //     reset();
+        // }
         setMove(0);
         setTime(0);
         setTimerRunning(timerRunning);
@@ -53,21 +111,21 @@ const Board = () => {
 
     const start = () =>{
         // check whether puzzle is solvable or not
-        if(isSolvable(numbers)){
-            alert("This puzzle is unsolvable. Please shuffle to generate a new puzzle.")
-            shuffle();
-            return
-        }
-        // start and pause timer
+        // start and pause timer        
         setStarts(!starts);
         setTimerRunning(!timerRunning);
+        if(!isSolvable(numbers)){
+            console.log(numbers);
+            alert("This puzzle is unsolvable. Refresh for new puzzle.")
+            reset();
+        }
     }
 
     const cost = (initial,target) =>{
         let count = 0;
         for(let i=0;i<N;i++){
             for(let j=0;j<N;j++){
-                if(initial[i][j] != target[i][j] && initial[i][j] != 16){
+                if(initial[i][j] !== target[i][j] && initial[i][j] !== 16){
                     count++;
                 }
             }
@@ -79,7 +137,7 @@ const Board = () => {
         let r = -1,c = -1;
         for(let i=0;i<N;i++){
             for(let j=0;j<N;j++){
-                if(initial[i][j] == 0){
+                if(initial[i][j] === 0){
                     r = i;
                     c = j;
                     break;
@@ -100,8 +158,8 @@ const Board = () => {
 
         path.push(JSON.parse(current));
         path.reverse();
-
-        console.log(path[1]);
+        console.log(path);
+        // console.log(path[1]);
     }
     
     const nextState = (initial, target) =>{
@@ -123,6 +181,7 @@ const Board = () => {
             let top = minHeap.peek();
             console.log(minHeap.dequeue());
             let states = JSON.parse(top.task);
+            let current = top.priority;
             // console.log(top.dist);
             console.log(states);
             let pos = spacePosition(states);
@@ -135,7 +194,7 @@ const Board = () => {
                     const temp = states;
                     [temp[x][y] ,temp[nx][ny]] = [temp[nx][ny],temp[x][y]];
                     let distance = cost(temp, target);
-                    if (!st.has(JSON.stringify(temp))) {
+                    if (!st.has(JSON.stringify(temp)) && distance <= current) {
                         mp.set(JSON.stringify(temp),JSON.stringify(states));
                         // console.log(distance);
                         minHeap.queue({task:JSON.stringify(temp),priority:distance});
@@ -148,11 +207,10 @@ const Board = () => {
                 }
             }
         }
-        // leaf_To_Root_path(mp,target);
+        leaf_To_Root_path(mp,target);
     }
     const help = ()=>{
         let initial = [];
-        console.log();
         let k = 0;
         for(let i=0;i<N;i++){
             const temp = [];
@@ -165,7 +223,7 @@ const Board = () => {
 
         for(let i=0;i<N;i++){
             for(let j=0;j<N;j++){
-                if(initial[i][j] == 16){
+                if(initial[i][j] === 16){
                     initial[i][j] = 0;
                 }
             }
@@ -175,45 +233,6 @@ const Board = () => {
         //console.log(target);
         
     }
-
-    const getInvCount = (puzzle) =>{
-        let inversion_count = 0;
-        for(let i=0;i<N*N-1;i++){
-            for(let j=i+1;j<N*N;j++){
-                if(puzzle[j] && puzzle[i] && puzzle[i] > puzzle[j]){
-                    inversion_count++;
-                }
-            }
-        }
-        return inversion_count;
-    }
-
-    const findXPosition = (puzzle) =>{
-        for(let i=N-1;i>=0;i--){
-            for(let j=N-1;j>=0;j--){
-                if(puzzle[i][j] == 0)
-                    return N-i;
-            }
-        }
-    }
-
-    const isSolvable = (puzzle) =>{
-        // check whether the puzzle is solvable or not
-        let inversion_count = getInvCount(puzzle);
-
-        if(N & 1){
-            return !(inversion_count & 1);
-        }
-        else{
-            let pos = findXPosition(puzzle);
-            if(pos & 1)
-                return !(inversion_count & 1);
-            else 
-                return inversion_count & 1;
-        }
-
-    }
-
 
     const moveTile = tile => {
         const i16 = numbers.find(n => n.value===16).index
@@ -232,6 +251,11 @@ const Board = () => {
             })
         setAnimating(true);
         setNumbers(newNumbers);
+        // check after move solvable or not
+        if(!isSolvable(numbers)){
+            alert("This puzzle is unsolvable. Refresh for new puzzle.")
+            reset();
+        }
         setMove(move+1);
         setTimeout(() => setAnimating(false), 200);
     }
